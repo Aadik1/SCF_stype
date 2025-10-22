@@ -1,12 +1,11 @@
 module DefineHamiltonian
   implicit none
-  integer :: Natoms, N_of_w, Volt_range, N_turns, N_ions, order, method, N_leads
+  integer :: Natoms, N_of_w, Volt_range, N_turns, N_ions, order
 
   real*8, dimension(:,:) :: C(3,3), pauli_z(2,2)
   real*8, dimension(3) :: Rij, w0
   real*8 :: T, mu, beta, V, delta, w_init, w_fin, delv, Vf
-  real*8 :: E_CC_up, E_CC_down, t_hop
-  real*8 :: L_up, L_down, R_up, R_down, SG_L, SG_R
+  real*8 :: E_CC, t_hop
   real*8 :: hel_radius, hel_length, lamb, hand, Hubbard
   real*8 :: Gamma, del_Gamma
   
@@ -43,8 +42,8 @@ contains
     do i= 1, Nat
        ii=2*i
 !..................diagonal        
-       H(ii-1,ii-1)= E_CC_up
-       H(ii,ii)    = E_CC_down
+       H(ii-1,ii-1)= E_CC
+       H(ii,ii)    = E_CC
        
 !.................. hopping       
        if(i.le.Nat-1) then

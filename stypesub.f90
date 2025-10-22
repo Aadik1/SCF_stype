@@ -34,13 +34,10 @@ subroutine input_SOC()
     case("up");           read(line(eq_pos+1:),*) up
     case("delta");        read(line(eq_pos+1:),*) delta
 
-    case("method");       read(line(eq_pos+1:),*) method
     case("pulay");        read(line(eq_pos+1:),*) pulay
-    case("iP");           read(line(eq_pos+1:),*) iP
     case("restart");      read(line(eq_pos+1:),*) restart
        
-    case("E_CC_up");      read(line(eq_pos+1:),*) E_CC_up
-    case("E_CC_down");    read(line(eq_pos+1:),*) E_CC_down
+    case("E_CC");      read(line(eq_pos+1:),*) E_CC
     case("t_hop");        read(line(eq_pos+1:),*) t_hop
     case("lamb");         read(line(eq_pos+1:),*) lamb
     case("Hubbard");      read(line(eq_pos+1:),*) Hubbard
@@ -49,12 +46,12 @@ subroutine input_SOC()
     case("del_Gamma");    read(line(eq_pos+1:),*) del_Gamma
 
     end select
-  end do
+ end do
+
   close(22) 
   
   beta = 1.d0/(kb*T)
-  N_leads = N_leads*2 !..accounts for spin
-  Natoms = 2*N_ions*N_turns + 2*N_leads!...# of ions per turn of the helix  and the # of turns multiplied by 2 for spins, then add the leads on either end
+  Natoms = 2*N_ions*N_turns !...# of ions per turn of the helix  and the # of turns multiplied by 2 for spins, then add the leads on either end
 
   Volt_range = (Vf - V)/delv
 
@@ -64,6 +61,7 @@ subroutine input_SOC()
   write(*,*) 'Order:', order, 'Natoms:', Natoms
   write(*,*) 'delta:', delta
   write(*,*) 'pulay:', pulay
+
 end subroutine input_SOC
 
 subroutine PrintFunctions()
@@ -99,11 +97,11 @@ subroutine PrintFunctions()
      write(12, '(i3,10(a,2f10.5,a))') j,(' [',Eigenvec(i,j),'] ', i = 1, Natoms)
   end do
 
-  write(12,*) 'Natoms:', Natoms-N_leads
-  write(12,*) 'N_leads:', N_leads
+  write(12,*) 'Natoms:', Natoms
 
   close(12)
 end subroutine PrintFunctions
+
 
 subroutine trans(iw, Volt, trans_up, trans_down) !....square bracket terms of Eq. (2) in CHE
   use GreensFunctions
@@ -113,7 +111,7 @@ subroutine trans(iw, Volt, trans_up, trans_down) !....square bracket terms of Eq
   real*8 :: Volt, w, trans_up, trans_down
 
   w = omega(iw)
-
+  
   work1 = GF0%L(:,:,iw)
   work2 = GF0%G(:,:,iw)
   

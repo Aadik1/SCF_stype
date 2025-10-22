@@ -26,9 +26,10 @@ program StypeJunction_Spin
   allocate(GammaL(Natoms, Natoms)); allocate(GammaR(Natoms, Natoms))
   call SOC_Hamiltonian()
    
-  GammaL = (0.d0, 0.d0); GammaL(1,1) = Gamma;  GammaL(2,2) = Gamma
+  GammaL = (0.d0, 0.d0); GammaL(1,1) = Gamma ;  GammaL(2,2) = Gamma
   
   GammaR = (0.d0, 0.d0); GammaR(Natoms-1, Natoms-1) = Gamma;  GammaR(Natoms, Natoms) = Gamma + del_Gamma
+
   
   !......................Defines the level width funcitons for L,R-leads to central region, i.e. the respective couplings
   
@@ -76,34 +77,28 @@ program StypeJunction_Spin
   
 !...............calculate GR and GA for all voltages on the omega grid
   allocate(work1(Natoms, Natoms)); allocate(work2(Natoms, Natoms)); allocate(work3(Natoms, Natoms)); allocate(work4(Natoms, Natoms))
-
-    
-!................ allocate arrays for Pulay wheel memory
-
-  allocate(GP%r_in(Natoms,Natoms,N_of_w,iP),GP%r_out(Natoms,Natoms,N_of_w,iP))
-  allocate(GP%l_out(Natoms,Natoms,N_of_w,iP))
-  allocate(Ov(iP,iP),C_coeff(iP),Rhs(iP+1,1),IPIV(iP+1))
   
   !.......................Calculates and plots Voltage vs Current curve
 
   
-  if(restart) then
-     call read_saved_GFs() ; first=.false.
-  else
-     first=.true.
-  end if
+ ! if(restart) then
+ !    call read_saved_GFs() ; first=.false.
+ ! else
+ !    first=.true.
+ ! end if
 
   open(3, file='Print.dat', status='unknown')
   
   write(vfn,'(i0)') order
   open(30, file='Volt_Current_'//trim(vfn)//'.dat', status='unknown')
-  
-  first=.true.
+
+  first = .true. 
   do k = 0, Volt_range
      V1 = V + k*delv
      
      call SCF_GFs(V1, first)
      
+     GF0%r=GFf%r ; GF0%a=GFf%a ; GF0%L=GFf%L ; GF0%G=GFf%G
      if(first) first=.false.
      
      call Current(V1, J_up, J_down)
@@ -132,7 +127,6 @@ program StypeJunction_Spin
   deallocate(GF0%r, GF0%a, GF0%L, GF0%G) 
   deallocate(work1, work2, work3, work4)
   deallocate(H, Hub, omega)
-  deallocate(GP%r_in,GP%r_out,GP%l_out,Ov)
   !deallocate(SigmaL, Sigma1, SigmaR);
   deallocate(GammaL, GammaR, G_nil)
 end program StypeJunction_Spin
