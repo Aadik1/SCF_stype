@@ -37,7 +37,7 @@ subroutine input_SOC()
     case("pulay");        read(line(eq_pos+1:),*) pulay
     case("restart");      read(line(eq_pos+1:),*) restart
        
-    case("E_CC");      read(line(eq_pos+1:),*) E_CC
+    case("E_CC");         read(line(eq_pos+1:),*) E_CC
     case("t_hop");        read(line(eq_pos+1:),*) t_hop
     case("lamb");         read(line(eq_pos+1:),*) lamb
     case("Hubbard");      read(line(eq_pos+1:),*) Hubbard
@@ -101,7 +101,6 @@ subroutine PrintFunctions()
 
   close(12)
 end subroutine PrintFunctions
-
 
 subroutine trans(iw, Volt, trans_up, trans_down) !....square bracket terms of Eq. (2) in CHE
   use GreensFunctions

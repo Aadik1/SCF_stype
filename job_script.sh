@@ -2,7 +2,7 @@
 #$ -N SpinJunction
 #$ -P Gold
 #$ -A KCL_Kantorovitch
-#$ -l h_rt=48:00:00
+#$ -l h_rt=12:00:00
 #$ -l mem=4.5G
 #$ -pe smp 40
 #$ -cwd

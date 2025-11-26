@@ -4,9 +4,9 @@ module GreensFunctions
   implicit none
   integer :: INFO
 
-  real*8, parameter :: epsilon = 1e-9
+  real*8, parameter :: epsilon = 1e-6
   real*8, allocatable, dimension(:) :: Hub, omega, Ev
-  real*8 :: pulay, dw, up
+  real*8 :: dw, up, pulay
   
   complex*16, allocatable, dimension(:,:) :: GammaL, GammaR, Eigenvec, G_nil
 !  complex*16, allocatable, dimension(:,:) ::  SigmaL, Sigma1, SigmaR
@@ -23,7 +23,7 @@ module GreensFunctions
   type(GF_full) :: GFf
 
 contains 
-  
+
    !.....fermi-dirac distribution
     real*8 function fermi_dist(w, V)
     implicit none
@@ -55,16 +55,11 @@ subroutine SCF_GFs(Volt,first)
      call G0_R_A()
      call G0_L_G(Volt)
   end if
-
+  
   print *, '>>>>>>>>>>VOLTAGE:', Volt
 
   Vname = abs(Volt)
   write(fn1,'(i0)') Vname
-  if (Volt .ge. 0) then 
-     open(17,file='err_V_'//trim(fn1)//'.dat',status='unknown')
-  else
-     open(17,file='err_V_n'//trim(fn1)//'.dat',status='unknown')
-  end if
 
   DO
      iteration = iteration + 1
@@ -82,16 +77,16 @@ subroutine SCF_GFs(Volt,first)
         call G_full(iw, Volt)
      end do
      !$OMP END PARALLEL DO
-     
+
      err=0.0d0
      do iw = 1, N_of_w
-        do i=1,Natoms
+        do i=1,Natoms,2
            diff=2.d0*hbar*(AIMAG(GFf%R(i,i,iw))-AIMAG(GF0%R(i,i,iw)))
            err=err +diff*diff
         end do
      end do
      write(*,*) 'err = ',sqrt(err)
-
+     
      GF0%R = pulay*GFf%R + (1.0d0-pulay)*GF0%R
      GF0%L = pulay*GFf%L + (1.0d0-pulay)*GF0%L
      
@@ -103,17 +98,15 @@ subroutine SCF_GFs(Volt,first)
         GF0%a(:,:,iw)=work2
      end do
      GF0%G = GF0%L + GF0%R - GF0%A
-
+     
   !____________ useful if one would like to check the convergence     
      !     write(13,*) iteration, current(Volt)
-
-     call save_GFs()
- 
+    
      if (sqrt(err) .lt. epsilon .or. order .eq. 0) then
         write(*,*)'... REACHED REQUIRED ACCURACY ...'
+        call print_GF0s()
         exit
      end if
-    
      
   END DO
   close(17)
@@ -135,49 +128,11 @@ subroutine G_full(iw, Volt) !... Full Greens function, leaves Retarded and Advan
   !............full SigmaR due to interactions Eq. (7)
   SigmaR = (0.d0, 0.d0); SigmaL = (0.d0, 0.d0); SigmaG = (0.d0, 0.d0)
   
-  if (order .eq. 1) then
-     call first_order_sigma(Sigma1)
-     SigmaR = Sigma1
-  else if (order .eq. 2) then
-     call first_order_sigma(Sigma1)
+  call do_sigmaR(iw,Volt,SigmaR,Sigma1)
 
-     do i = 1, Natoms, 2
-        do sp = 0, 1
-           ii = i +sp
-           
-           do j = 1, Natoms, 2
-              do sp1 = 0, 1
-                 jj= j + sp1
-                 
-                 Omr = Omega_r(i,j,sp,sp1,iw)
-                 SigmaR(ii,jj) =  Sigma1(ii,jj)  + (Hub(j)*Hub(i)*OmR)*hbar**2
-                 
-              end do
-           end do
-           
-        end do
-     end do
- 
-     !..............full SigmaL, Eq. (3) and (4)     
-     !.....Interaction contribution of both Sigmas     
-
-     do i = 1, Natoms, 2
-        do sp = 0, 1
-           ii = i +sp
-           
-           do j = 1, Natoms, 2
-              do sp1 = 0, 1
-                 jj= j + sp1                 
-
-                 call int_SigLnG(i,j, sp, sp1, iw, SigL, SigG)
-                 SigmaL(ii,jj) = Hub(j)*Hub(i)*SigL*hbar**2
-                ! SigmaG(ii,jj) = Hub(j)*Hub(i)*SigG*hbar**2
-                 
-              end do
-           end do
-           
-        end do
-     end do
+  if (order .eq. 2) then
+     SigmaL = (0.d0, 0.d0)
+     call do_SigmaL(iw,Volt,SigmaL)
   end if
   
   !............full Gr and Ga, Eq. (5) and (6)
@@ -207,6 +162,64 @@ subroutine G_full(iw, Volt) !... Full Greens function, leaves Retarded and Advan
   deallocate(SigmaL, Sigma1, SigmaR, SigmaG,  w1, w2)
 end subroutine G_full
 
+subroutine do_SigmaR(iw,Volt,SigmaR,Sigma1)
+  implicit none
+  complex*16 :: SigmaR(Natoms,Natoms),Sigma1(Natoms,Natoms),Omr
+  integer :: iw,i,j, ii, jj, sp, sp1
+  real*8 :: Volt
+  
+  
+  if (order .eq. 1) then
+     call first_order_sigma(Sigma1)
+     SigmaR = Sigma1
+  else if (order .eq. 2) then
+     call first_order_sigma(Sigma1)
+     
+     do i = 1, Natoms, 2
+        do sp = 0, 1
+           ii = i +sp
+           
+           do j = 1, Natoms, 2
+              do sp1 = 0, 1
+                 jj= j + sp1
+                 
+                 Omr = Omega_r(i,j,sp,sp1,iw)
+                 SigmaR(ii,jj) =  Sigma1(ii,jj)  + (Hub(j)*Hub(i)*OmR)*hbar**2
+                 
+              end do
+           end do
+           
+        end do
+     end do
+  end if
+
+end subroutine do_SigmaR
+
+subroutine do_SigmaL(iw,Volt,SigmaL)
+  implicit none
+  complex*16 :: SigmaL(Natoms,Natoms),SigL,SigG
+  integer :: iw,i,j, ii, jj, sp, sp1
+  real*8 :: Volt
+  
+  
+     do i = 1, Natoms, 2
+        do sp = 0, 1
+           ii = i +sp
+           
+           do j = 1, Natoms, 2
+              do sp1 = 0, 1
+                 jj= j + sp1                 
+
+                 call int_SigLnG(i,j, sp, sp1, iw, SigL)
+                 SigmaL(ii,jj) = Hub(j)*Hub(i)*SigL*hbar**2
+                
+              end do
+           end do
+           
+        end do
+     end do
+  
+end subroutine do_SigmaL
 !=====================================================
 !======== Non-interacting GFs ========================
 !=====================================================  
@@ -260,27 +273,26 @@ subroutine G0_R_A()
 
 end subroutine G0_R_A
 
- subroutine G0_L_G(Volt)
-!............non-interacting Greens functions: G> and G< for all omega on the grid, Eq. (16) and (17) in CHE
-    implicit none
-    real*8 :: Volt, w
-    integer :: j, i
-    
-    work1 = (0.d0, 0.d0) ; work2 =(0.d0, 0.d0) ; work3 = (0.d0, 0.d0); work4 = (0.d0, 0.d0)
-    do j = 1 , N_of_w
-       w = omega(j)
-       work1 = GF0%r(:,:,j) 
-       work2 = GF0%a(:,:,j)
-
-       work3 = matmul(matmul(work1, im*(fermi_dist(w, Volt)*GammaL + fermi_dist(w, 0.d0)*GammaR)), work2) 
-      ! work4 = matmul(matmul(work1, im*((fermi_dist(w, Volt)-1.d0)*GammaL + (fermi_dist(w, 0.d0)-1.d0)*GammaR)), work2)
-       GF0%L(:,:,j) = work3
-      ! GF0%G(:,:,j) = work4
-       GF0%G(:,:,j) =  GF0%L(:,:,j) + GF0%R(:,:,j) - GF0%A(:,:,j)
-    end do
-    
-  end subroutine G0_L_G 
-
+subroutine G0_L_G(Volt)
+  !............non-interacting Greens functions: G> and G< for all omega on the grid, Eq. (16) and (17) in CHE
+  implicit none
+  real*8 :: Volt, w
+  integer :: j, i
+  
+  work1 = (0.d0, 0.d0) ; work2 =(0.d0, 0.d0) ; work3 = (0.d0, 0.d0); work4 = (0.d0, 0.d0)
+  do j = 1 , N_of_w
+     w = omega(j)
+     work1 = GF0%r(:,:,j) 
+     work2 = GF0%a(:,:,j)
+     
+     work3 = matmul(matmul(work1, im*(fermi_dist(w, Volt)*GammaL + fermi_dist(w, 0.d0)*GammaR)), work2) 
+     ! work4 = matmul(matmul(work1, im*((fermi_dist(w, Volt)-1.d0)*GammaL + (fermi_dist(w, 0.d0)-1.d0)*GammaR)), work2)
+     GF0%L(:,:,j) = work3
+     ! GF0%G(:,:,j) = work4
+     GF0%G(:,:,j) =  GF0%L(:,:,j) + GF0%R(:,:,j) - GF0%A(:,:,j)
+  end do
+  
+end subroutine G0_L_G
 
   !=====================================================
 !========Calcualtions needed for full GFs=============
@@ -352,7 +364,7 @@ complex*16 function Omega_r(i, j, sp, sp1, iw)
   Omega_R = Omr*pp*pp
 end function Omega_r
 
-subroutine int_SigLnG(i,j,sp,sp1,iw,SigL,SigG) !... interaction contributions of Eq. (23) + Eq. (26) 
+subroutine int_SigLnG(i,j,sp,sp1,iw,SigL) !... interaction contributions of Eq. (23) + Eq. (26) 
   implicit none
   integer :: i, j, k1, k2, k3, iw, m, n, sp, sp1, s, s1, ii, jj
   complex*16 ::  SigL, SigG
@@ -369,14 +381,10 @@ subroutine int_SigLnG(i,j,sp,sp1,iw,SigL,SigG) !... interaction contributions of
         if (k3 .ge. 1 .and. k3 .le. N_of_w) then   
            do s = 0, 1 !...Sum over spin
               do s1 = 0, 1
-                 m = j+s1; n= i+s
+                 m = i+s1; n= j+s
                  
                  SigL = SigL + GF0%L(ii,jj,k1)*GF0%G(n,m,k2)*GF0%L(m,n,k3) &
                       - GF0%L(ii,n,k1)*GF0%G(n,m,k2)*GF0%L(m,jj,k3) 
-                      
-                
-               !  SigG = SigG + GF0%G(m,n,k1)*GF0%L(n,m,k2)*GF0%G(ii,jj,k3) &
-                      !- GF0%G(ii,m,k1)*GF0%L(m,n,k2)*GF0%G(n,jj,k3) 
                  
               end do
            end do
@@ -388,24 +396,34 @@ subroutine int_SigLnG(i,j,sp,sp1,iw,SigL,SigG) !... interaction contributions of
   SigL = SigL*pp*pp !; SigG = SigG*pp*pp
 end subroutine int_SigLnG
 
+ subroutine print_GFfs()
+   implicit none
+   integer :: i,j
 
-!====================================================
-!========== restart routines  =======================
-!====================================================
+   write(*,'(/a)') '... GFr:'
+   do i = 1, Natoms, 2
+      write(*, '(10(a,2f10.5,a))') (' [',GFf%R(i,j,1),'] ', j=1,Natoms,2)
+   end do
 
-subroutine save_GFs()
-  implicit none
-  open(1,file='Greens_functions.dat',form='unformatted',status='unknown')
-  write(1) GF0%r,GF0%a,GF0%l,GF0%g
-  close(1)
-end subroutine save_GFs
-
-subroutine read_saved_GFs()
-  implicit none
-  open(1,file='Greens_functions.dat',form='unformatted',status='old')
-  read(1) GF0%r,GF0%a,GF0%l,GF0%g
-  close(1)
-end subroutine read_saved_GFs
-
-end module GreensFunctions
+   write(*,'(/a)') '... GFl:'
+   do i = 1, Natoms, 2
+      write(*, '(10(a,2f10.5,a))') (' [',GFf%L(i,j,1),'] ', j=1,Natoms,2)
+   end do
+ end subroutine print_GFfs
  
+ subroutine print_GF0s()
+   implicit none
+   integer :: i,j
+
+   write(*,'(/a)') '... GFr:'
+   do i = 1, Natoms, 2
+      write(*, '(10(a,2f10.5,a))') (' [',GF0%R(i,j,1),'] ', j=1,Natoms,2)
+   end do
+
+   write(*,'(/a)') '... GFl:'
+   do i = 1, Natoms, 2
+      write(*, '(10(a,2f10.5,a))') (' [',GF0%L(i,j,1),'] ', j=1,Natoms,2)
+   end do
+ end subroutine print_GF0s
+end module GreensFunctions
+

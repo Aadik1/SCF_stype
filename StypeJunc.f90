@@ -80,13 +80,6 @@ program StypeJunction_Spin
   
   !.......................Calculates and plots Voltage vs Current curve
 
-  
- ! if(restart) then
- !    call read_saved_GFs() ; first=.false.
- ! else
- !    first=.true.
- ! end if
-
   open(3, file='Print.dat', status='unknown')
   
   write(vfn,'(i0)') order
@@ -98,7 +91,7 @@ program StypeJunction_Spin
      
      call SCF_GFs(V1, first)
      
-     GF0%r=GFf%r ; GF0%a=GFf%a ; GF0%L=GFf%L ; GF0%G=GFf%G
+    ! GF0%r=GFf%r ; GF0%a=GFf%a ; GF0%L=GFf%L ; GF0%G=GFf%G
      if(first) first=.false.
      
      call Current(V1, J_up, J_down)
