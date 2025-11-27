@@ -405,7 +405,7 @@ subroutine avg_spin(Volt, S_alpha, N, unit_num)
   integer :: i, s1, s2, unit_num, N
   real*8 :: Volt
   complex*16 :: S_alpha(N, 3), traces(3)
-  complex*16 :: pop_up, pop_down, pref
+  complex*16 :: pop_up, pop_down, pref, pop_tot
   
   S_alpha = (0.d0, 0.d0)
   pref = -im*0.5d0*hbar*hbar
@@ -433,9 +433,10 @@ subroutine avg_spin(Volt, S_alpha, N, unit_num)
      
      pop_up = - im*G_nil(i,i)*hbar       !...spin up at site i
      pop_down = - im*G_nil(i+1,i+1)*hbar       !...spin down at site i
+     pop_tot = pop_up + pop_down
      
      !... site, Volt, Sx, Sy, Sz, n_down, n_up
-     write(unit_num, *) Volt, (i+1)/2, real(S_alpha(i, 1)), real(S_alpha(i, 2)), real(S_alpha(i, 3)), real(pop_down), real(pop_up)
+     write(unit_num, *) Volt, (i+1)/2, real(S_alpha(i, 1)), real(S_alpha(i, 2)), real(S_alpha(i, 3)), real(pop_down), real(pop_up), real(pop_tot)
   end do
   flush(unit_num)
 end subroutine avg_spin
