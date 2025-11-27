@@ -10,7 +10,7 @@ module GreensFunctions
   
   complex*16, allocatable, dimension(:,:) :: GammaL, GammaR, Eigenvec, G_nil
 !  complex*16, allocatable, dimension(:,:) ::  SigmaL, Sigma1, SigmaR
-  complex*16, allocatable, dimension(:,:) :: work1, work2, work3, work4
+  complex*16, allocatable, dimension(:,:) :: work1, work2, work3, work4, S_a
 
   type :: GF
      complex*16, allocatable, dimension(:,:,:) :: r, a, L, G
@@ -104,7 +104,6 @@ subroutine SCF_GFs(Volt,first)
     
      if (sqrt(err) .lt. epsilon .or. order .eq. 0) then
         write(*,*)'... REACHED REQUIRED ACCURACY ...'
-        call print_GF0s()
         exit
      end if
      
@@ -395,6 +394,55 @@ subroutine int_SigLnG(i,j,sp,sp1,iw,SigL) !... interaction contributions of Eq. 
   pp = delta/(2.d0*pi)
   SigL = SigL*pp*pp !; SigG = SigG*pp*pp
 end subroutine int_SigLnG
+
+
+!=====================================================
+!========Calcualtions needed Spin Texture=============
+!=====================================================
+
+subroutine avg_spin(Volt, S_alpha, N, unit_num)
+  implicit none
+  integer :: i, s1, s2, unit_num, N
+  real*8 :: Volt
+  complex*16 :: S_alpha(N, 3), traces(3)
+  complex*16 :: pop_up, pop_down, pref
+  
+  S_alpha = (0.d0, 0.d0)
+  pref = -im*0.5d0*hbar*hbar
+  
+  do i = 1, Natoms, 2
+     traces = (0.d0, 0.d0)
+   
+     do s1 = 0, 1   
+        do s2 = 0, 1
+           traces(1) = traces(1) + pauli_x(s1+1, s2+1) * G_nil(i+s2, i+s1)
+           traces(2) = traces(2) + pauli_y(s1+1, s2+1) * G_nil(i+s2, i+s1)
+           traces(3) = traces(3) + pauli_z(s1+1, s2+1) * G_nil(i+s2, i+s1)
+        end do
+     end do
+
+     S_alpha(i,1) = traces(1) * pref
+     S_alpha(i,2) = traces(2) * pref
+     S_alpha(i,3) = traces(3) * pref
+
+  end do
+  
+  pop_down = (0.d0, 0.d0); pop_up = (0.d0, 0.d0)
+  !..write out the spin operator information
+  do i = 1, Natoms, 2
+     
+     pop_up = - im*G_nil(i,i)*hbar       !...spin up at site i
+     pop_down = - im*G_nil(i+1,i+1)*hbar       !...spin down at site i
+     
+     !... site, Volt, Sx, Sy, Sz, n_down, n_up
+     write(unit_num, *) Volt, (i+1)/2, real(S_alpha(i, 1)), real(S_alpha(i, 2)), real(S_alpha(i, 3)), real(pop_down), real(pop_up)
+  end do
+  flush(unit_num)
+end subroutine avg_spin
+
+!======================
+!...Print Routines
+!======================
 
  subroutine print_GFfs()
    implicit none

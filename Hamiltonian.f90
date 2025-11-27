@@ -2,7 +2,7 @@ module DefineHamiltonian
   implicit none
   integer :: Natoms, N_of_w, Volt_range, N_turns, N_ions, order
 
-  real*8, dimension(:,:) :: C(3,3), pauli_z(2,2)
+  real*8, dimension(:,:) :: C(3,3)
   real*8, dimension(3) :: Rij, w0
   real*8 :: T, mu, beta, V, delta, w_init, w_fin, delv, Vf
   real*8 :: E_CC, t_hop
@@ -16,6 +16,7 @@ module DefineHamiltonian
   
   complex*16, parameter :: im = (0.d0, 1.d0)
   complex*16, allocatable, dimension(:,:) :: H
+  complex*16 :: pauli_y(2,2), pauli_x(2,2), pauli_z(2,2)
 
   logical :: restart
 contains 

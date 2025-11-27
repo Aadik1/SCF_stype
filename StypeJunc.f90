@@ -26,9 +26,9 @@ program StypeJunction_Spin
   allocate(GammaL(Natoms, Natoms)); allocate(GammaR(Natoms, Natoms))
   call SOC_Hamiltonian()
    
-  GammaL = (0.d0, 0.d0); GammaL(1,1) = Gamma ;  GammaL(2,2) = Gamma
+  GammaL = (0.d0, 0.d0); GammaL(1,1) = Gamma ;  GammaL(2,2) = Gamma+ del_Gamma
   
-  GammaR = (0.d0, 0.d0); GammaR(Natoms-1, Natoms-1) = Gamma;  GammaR(Natoms, Natoms) = Gamma + del_Gamma
+  GammaR = (0.d0, 0.d0); GammaR(Natoms-1, Natoms-1) = Gamma;  GammaR(Natoms, Natoms) = Gamma 
 
   
   !......................Defines the level width funcitons for L,R-leads to central region, i.e. the respective couplings
@@ -78,6 +78,9 @@ program StypeJunction_Spin
 !...............calculate GR and GA for all voltages on the omega grid
   allocate(work1(Natoms, Natoms)); allocate(work2(Natoms, Natoms)); allocate(work3(Natoms, Natoms)); allocate(work4(Natoms, Natoms))
   
+  !......Sigma Operator
+  allocate(S_a(Natoms,3))
+  
   !.......................Calculates and plots Voltage vs Current curve
 
   open(3, file='Print.dat', status='unknown')
@@ -98,6 +101,8 @@ program StypeJunction_Spin
      polarisation = (J_up-J_down)/(J_up+J_down)
      write(30, *) V1, J_up, J_down, polarisation
      flush(30)
+
+     call avg_spin(V1, S_a, Natoms, 230)
      
      print *, 'Progress:', k/(Volt_range*0.01), '%', J_up, J_down
   end do
@@ -119,7 +124,7 @@ program StypeJunction_Spin
   deallocate(GFf%L, GFf%G,GFf%R, GFf%A)
   deallocate(GF0%r, GF0%a, GF0%L, GF0%G) 
   deallocate(work1, work2, work3, work4)
-  deallocate(H, Hub, omega)
+  deallocate(H, Hub, omega, S_a)
   !deallocate(SigmaL, Sigma1, SigmaR);
   deallocate(GammaL, GammaR, G_nil)
 end program StypeJunction_Spin
