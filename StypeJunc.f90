@@ -87,7 +87,8 @@ program StypeJunction_Spin
   
   write(vfn,'(i0)') order
   open(30, file='Volt_Current_'//trim(vfn)//'.dat', status='unknown')
-
+  open(230, file='populations.dat',status='unknown')
+  
   first = .true. 
   do k = 0, Volt_range
      V1 = V + k*delv
@@ -107,8 +108,7 @@ program StypeJunction_Spin
      print *, 'Progress:', k/(Volt_range*0.01), '%', J_up, J_down
   end do
   
-  close(3)
-  close(30)
+  close(3); close(30); close(230)
   
   call SYSTEM_CLOCK(COUNT=end_tick)
   total_time = real(end_tick - start_tick)/real(rate)

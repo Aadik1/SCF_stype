@@ -51,10 +51,10 @@ subroutine SCF_GFs(Volt,first)
 
   write(22,*) '........SCF Calculations at Voltage:', Volt, '..........'
 
-  if (first) then 
+ ! if (first) then 
      call G0_R_A()
      call G0_L_G(Volt)
-  end if
+  !end if
   
   print *, '>>>>>>>>>>VOLTAGE:', Volt
 
@@ -105,6 +105,9 @@ subroutine SCF_GFs(Volt,first)
      if (sqrt(err) .lt. epsilon .or. order .eq. 0) then
         write(*,*)'... REACHED REQUIRED ACCURACY ...'
         exit
+     else if (iteration .gt. 300) then
+        write(*,*) 'DIVERGED'
+        STOP
      end if
      
   END DO
@@ -436,7 +439,8 @@ subroutine avg_spin(Volt, S_alpha, N, unit_num)
      pop_tot = pop_up + pop_down
      
      !... site, Volt, Sx, Sy, Sz, n_down, n_up
-     write(unit_num, *) Volt, (i+1)/2, real(S_alpha(i, 1)), real(S_alpha(i, 2)), real(S_alpha(i, 3)), real(pop_down), real(pop_up), real(pop_tot)
+     write(unit_num, *) Volt, (i+1)/2, real(S_alpha(i, 1)), real(S_alpha(i, 2)), real(S_alpha(i, 3)), real(pop_down), real(pop_up) &
+          , real(pop_tot)
   end do
   flush(unit_num)
 end subroutine avg_spin
