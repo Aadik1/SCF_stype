@@ -99,7 +99,7 @@ program StypeJunction_Spin
      if(first) first=.false.
      
      call Current(V1, J_up, J_down)
-     polarisation = (J_up-J_down)/(J_up+J_down)
+     polarisation = (J_up-J_down)!/(J_up+J_down)
      write(30, *) V1, J_up, J_down, polarisation
      flush(30)
 
