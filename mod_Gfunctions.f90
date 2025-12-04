@@ -105,7 +105,7 @@ subroutine SCF_GFs(Volt,first)
      if (sqrt(err) .lt. epsilon .or. order .eq. 0) then
         write(*,*)'... REACHED REQUIRED ACCURACY ...'
         exit
-     else if (iteration .gt. 300) then
+     else if (iteration .gt. 300 .and. sqrt(err) .gt. 1e-2) then
         write(*,*) 'DIVERGED'
         STOP
      end if
